@@ -1,0 +1,18 @@
+---
+- name: 4.9 and 4.10 Maintain the default OpenShift Container Network Interface file permissions and file ownership
+  file:
+    path: /etc/origin/openvswitch/
+    recurse: yes
+    owner: root
+    group: root
+    state: directory
+    mode: 0644
+
+- name: 4.9 and 4.10 Maintain the default OpenShift Container Network Interface file permissions and file ownership
+  file:
+    path: /etc/cni/net.d/
+    recurse: yes
+    owner: root
+    group: root
+    state: directory
+    mode: 0644

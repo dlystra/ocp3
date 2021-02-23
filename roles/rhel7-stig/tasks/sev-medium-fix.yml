@@ -1,0 +1,2501 @@
+---
+- name: Set architecture for audit tallylog tasks
+  set_fact:
+    audit_arch: "b{{ ansible_architecture | regex_replace('.*(\\d\\d$)','\\1') }}"
+  tags:
+    - audit_rules_login_events_tallylog
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80994-7
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.3
+    - DISA-STIG-RHEL-07-030600
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Inserts/replaces the rmmod rule in audit.rules
+  lineinfile:
+    path: /etc/audit/rules.d/modules.rules
+    line: '-w /usr/sbin/rmmod -p x -k modules'
+    create: yes
+
+- name: Inserts/replaces the insmod rule in audit.rules
+  lineinfile:
+    path: /etc/audit/rules.d/modules.rules
+    line: '-w /usr/sbin/insmod -p x -k modules'
+    create: yes
+
+- name: Inserts/replaces the modprobe rule in audit.rules
+  lineinfile:
+    path: /etc/audit/rules.d/modules.rules
+    line: '-w /usr/sbin/modprobe -p x -k modules'
+    create: yes
+
+- name: aide_verify_ext_attributes
+  lineinfile:
+    path: /etc/aide.conf
+    line: 'FIPSR = p+i+n+u+g+s+m+c+acl+selinux+xattrs+sha512'
+    create: yes
+
+- name: aide_use_fips_hashes
+  lineinfile:
+    path: /etc/aide.conf
+    line: 'NORMAL = FIPSR+sha512'
+    create: yes
+    
+- name: audit_rules_privileged_commands_passwd
+  lineinfile:
+    path: /etc/audit/rules.d/privileged.rules
+    line: '-a always,exit -F path=/usr/bin/passwd -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+
+- name: audit_rules_privileged_commands_chage
+  lineinfile:
+    path: /etc/audit/rules.d/privileged.rules
+    line: '-a always,exit -F path=/usr/bin/chage -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+
+- name: audit_rules_privileged_commands_userhelper
+  lineinfile:
+    path: /etc/audit/rules.d/privileged.rules
+    line: '-a always,exit -F path=/usr/bin/userhelper -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+
+- name: audit_rules_privileged_commands_gpasswd
+  lineinfile:
+    path: /etc/audit/rules.d/privileged.rules
+    line: '-a always,exit -F path=/usr/bin/gpasswd -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+
+- name: audit_rules_privileged_commands_su
+  lineinfile:
+    path: /etc/audit/rules.d/privileged.rules
+    line: '-a always,exit -F path=/usr/bin/su -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+
+- name: audit_rules_privileged_commands_newgrp
+  lineinfile:
+    path: /etc/audit/rules.d/privileged.rules
+    line: '-a always,exit -F path=/usr/bin/newgrp -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+#
+# Inserts/replaces the rule in /etc/audit/rules.d
+#
+- name: Search /etc/audit/rules.d for other user/group modification audit rules
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "-k logins$"
+    patterns: "*.rules"
+  register: find_tallylog
+  tags:
+    - audit_rules_login_events_tallylog
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80994-7
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.3
+    - DISA-STIG-RHEL-07-030600
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: If existing user/group modification ruleset not found, use /etc/audit/rules.d/logins.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/logins.rules
+  when: find_tallylog.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_login_events_tallylog
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80994-7
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.3
+    - DISA-STIG-RHEL-07-030600
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_tallylog.files | map(attribute='path') | list | first }}"
+  when: find_tallylog.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_login_events_tallylog
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80994-7
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.3
+    - DISA-STIG-RHEL-07-030600
+
+- name: Inserts/replaces the tallylog rule in rules.d when on x86
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: "-w /var/log/tallylog -p wa -k logins"
+    create: yes
+  tags:
+    - audit_rules_login_events_tallylog
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80994-7
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.3
+    - DISA-STIG-RHEL-07-030600
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+#
+# Inserts/replaces the rule in /etc/audit/audit.rules
+#
+- name: Inserts/replaces the tallylog rule in /etc/audit/audit.rules
+  lineinfile:
+    line: "-w /var/log/tallylog -p wa -k logins"
+    state: present
+    dest: /etc/audit/audit.rules
+  tags:
+    - audit_rules_login_events_tallylog
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80994-7
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.3
+    - DISA-STIG-RHEL-07-030600
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/sbin/setfiles.*$"
+    patterns: "*.rules"
+  register: find_setfiles
+  tags:
+    - audit_rules_execution_setfiles
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80660-4
+    - DISA-STIG-RHEL-07-030590
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_setfiles.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_execution_setfiles
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80660-4
+    - DISA-STIG-RHEL-07-030590
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_setfiles.files | map(attribute='path') | list | first }}"
+  when: find_setfiles.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_execution_setfiles
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80660-4
+    - DISA-STIG-RHEL-07-030590
+
+- name: Inserts/replaces the setfiles rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/sbin/setfiles -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_execution_setfiles
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80660-4
+    - DISA-STIG-RHEL-07-030590
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the setfiles rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the setfiles rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/sbin/setfiles -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_execution_setfiles
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80660-4
+    - DISA-STIG-RHEL-07-030590
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/sbin/setsebool.*$"
+    patterns: "*.rules"
+  register: find_setsebool
+  tags:
+    - audit_rules_execution_setsebool
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80392-4
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030570
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_setsebool.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_execution_setsebool
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80392-4
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030570
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_setsebool.files | map(attribute='path') | list | first }}"
+  when: find_setsebool.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_execution_setsebool
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80392-4
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030570
+
+- name: Inserts/replaces the setsebool rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/sbin/setsebool -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_execution_setsebool
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80392-4
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030570
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the setsebool rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the setsebool rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/sbin/setsebool -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_execution_setsebool
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80392-4
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030570
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/sbin/semanage.*$"
+    patterns: "*.rules"
+  register: find_semanage
+  tags:
+    - audit_rules_execution_semanage
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80391-6
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030560
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_semanage.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_execution_semanage
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80391-6
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030560
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_semanage.files | map(attribute='path') | list | first }}"
+  when: find_semanage.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_execution_semanage
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80391-6
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030560
+
+- name: Inserts/replaces the semanage rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/sbin/semanage -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_execution_semanage
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80391-6
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030560
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the semanage rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the semanage rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/sbin/semanage -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_execution_semanage
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80391-6
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030560
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/bin/chcon.*$"
+    patterns: "*.rules"
+  register: find_chcon
+  tags:
+    - audit_rules_execution_chcon
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80393-2
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030580
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_chcon.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_execution_chcon
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80393-2
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030580
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_chcon.files | map(attribute='path') | list | first }}"
+  when: find_chcon.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_execution_chcon
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80393-2
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030580
+
+- name: Inserts/replaces the chcon rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/bin/chcon -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_execution_chcon
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80393-2
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030580
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the chcon rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the chcon rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/bin/chcon -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_execution_chcon
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80393-2
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030580
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/bin/sudo.*$"
+    patterns: "*.rules"
+  register: find_sudo
+  tags:
+    - audit_rules_privileged_commands_sudo
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80401-3
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030690
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_sudo.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_sudo
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80401-3
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030690
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_sudo.files | map(attribute='path') | list | first }}"
+  when: find_sudo.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_sudo
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80401-3
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030690
+
+- name: Inserts/replaces the sudo rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/bin/sudo -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_sudo
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80401-3
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030690
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the sudo rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the sudo rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/bin/sudo -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_sudo
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80401-3
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030690
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/sbin/postdrop.*$"
+    patterns: "*.rules"
+  register: find_postdrop
+  tags:
+    - audit_rules_privileged_commands_postdrop
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80406-2
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030760
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_postdrop.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_postdrop
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80406-2
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030760
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_postdrop.files | map(attribute='path') | list | first }}"
+  when: find_postdrop.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_postdrop
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80406-2
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030760
+
+- name: Inserts/replaces the postdrop rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/sbin/postdrop -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_postdrop
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80406-2
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030760
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the postdrop rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the postdrop rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/sbin/postdrop -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_postdrop
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80406-2
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030760
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/bin/chsh.*$"
+    patterns: "*.rules"
+  register: find_chsh
+  tags:
+    - audit_rules_privileged_commands_chsh
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80404-7
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030720
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_chsh.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_chsh
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80404-7
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030720
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_chsh.files | map(attribute='path') | list | first }}"
+  when: find_chsh.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_chsh
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80404-7
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030720
+
+- name: Inserts/replaces the chsh rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/bin/chsh -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_chsh
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80404-7
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030720
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the chsh rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the chsh rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/bin/chsh -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_chsh
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80404-7
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030720
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/sbin/postqueue.*$"
+    patterns: "*.rules"
+  register: find_postqueue
+  tags:
+    - audit_rules_privileged_commands_postqueue
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80407-0
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030770
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_postqueue.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_postqueue
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80407-0
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030770
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_postqueue.files | map(attribute='path') | list | first }}"
+  when: find_postqueue.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_postqueue
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80407-0
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030770
+
+- name: Inserts/replaces the postqueue rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/sbin/postqueue -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_postqueue
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80407-0
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030770
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the postqueue rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the postqueue rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/sbin/postqueue -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_postqueue
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80407-0
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030770
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/sbin/pam_timestamp_check.*$"
+    patterns: "*.rules"
+  register: find_pam_timestamp_check
+  tags:
+    - audit_rules_privileged_commands_pam_timestamp_check
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80411-2
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030810
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_pam_timestamp_check.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_pam_timestamp_check
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80411-2
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030810
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_pam_timestamp_check.files | map(attribute='path') | list | first }}"
+  when: find_pam_timestamp_check.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_pam_timestamp_check
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80411-2
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030810
+
+- name: Inserts/replaces the pam_timestamp_check rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/sbin/pam_timestamp_check -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_pam_timestamp_check
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80411-2
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030810
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the pam_timestamp_check rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the pam_timestamp_check rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/sbin/pam_timestamp_check -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_pam_timestamp_check
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80411-2
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030810
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/bin/crontab.*$"
+    patterns: "*.rules"
+  register: find_crontab
+  tags:
+    - audit_rules_privileged_commands_crontab
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80410-4
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030800
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_crontab.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_crontab
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80410-4
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030800
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_crontab.files | map(attribute='path') | list | first }}"
+  when: find_crontab.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_crontab
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80410-4
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030800
+
+- name: Inserts/replaces the crontab rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/bin/crontab -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_crontab
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80410-4
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030800
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the crontab rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the crontab rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/bin/crontab -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_crontab
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80410-4
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030800
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/bin/umount.*$"
+    patterns: "*.rules"
+  register: find_umount
+  tags:
+    - audit_rules_privileged_commands_umount
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80405-4
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030750
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_umount.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_umount
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80405-4
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030750
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_umount.files | map(attribute='path') | list | first }}"
+  when: find_umount.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_umount
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80405-4
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030750
+
+- name: Inserts/replaces the umount rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/bin/umount -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_umount
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80405-4
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030750
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the umount rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the umount rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/bin/umount -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_umount
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80405-4
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030750
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/sbin/unix_chkpwd.*$"
+    patterns: "*.rules"
+  register: find_unix_chkpwd
+  tags:
+    - audit_rules_privileged_commands_unix_chkpwd
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80396-5
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030640
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_unix_chkpwd.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_unix_chkpwd
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80396-5
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030640
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_unix_chkpwd.files | map(attribute='path') | list | first }}"
+  when: find_unix_chkpwd.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_unix_chkpwd
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80396-5
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030640
+
+- name: Inserts/replaces the unix_chkpwd rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/sbin/unix_chkpwd -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_unix_chkpwd
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80396-5
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030640
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the unix_chkpwd rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the unix_chkpwd rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/sbin/unix_chkpwd -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_unix_chkpwd
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80396-5
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030640
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/libexec/openssh/ssh-keysign.*$"
+    patterns: "*.rules"
+  register: find_ssh_keysign
+  tags:
+    - audit_rules_privileged_commands_ssh_keysign
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80408-8
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030780
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_ssh_keysign.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_ssh_keysign
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80408-8
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030780
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_ssh_keysign.files | map(attribute='path') | list | first }}"
+  when: find_ssh_keysign.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_ssh_keysign
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80408-8
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030780
+
+- name: Inserts/replaces the ssh_keysign rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/libexec/openssh/ssh-keysign -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_ssh_keysign
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80408-8
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030780
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the ssh_keysign rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the ssh_keysign rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/libexec/openssh/ssh-keysign -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_ssh_keysign
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80408-8
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030780
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/bin/sudoedit.*$"
+    patterns: "*.rules"
+  register: find_sudoedit
+  tags:
+    - audit_rules_privileged_commands_sudoedit
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80402-1
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030730
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_sudoedit.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_sudoedit
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80402-1
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030730
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_sudoedit.files | map(attribute='path') | list | first }}"
+  when: find_sudoedit.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_sudoedit
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80402-1
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030730
+
+- name: Inserts/replaces the sudoedit rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/bin/sudoedit -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_sudoedit
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80402-1
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030730
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the sudoedit rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the sudoedit rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/bin/sudoedit -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_sudoedit
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80402-1
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030730
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Search for privileged commands
+  shell: "find / -xdev -type f -perm -4000 -o -type f -perm -2000 2>/dev/null | cat"
+  check_mode: no
+  register: find_result
+  tags:
+    - audit_rules_privileged_commands
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27437-3
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-2(a)
+    - NIST-800-53-AU-2(c)
+    - NIST-800-53-AU-2(d)
+    - NIST-800-53-AU-2(4)
+    - NIST-800-53-AU-6(9)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.2
+    - CJIS-5.4.1.1
+    - DISA-STIG-RHEL-07-030360
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path={{ item }} .*$"
+    patterns: "*.rules"
+  with_items:
+    - "{{ find_result.stdout_lines }}"
+  register: files_result
+  tags:
+    - audit_rules_privileged_commands
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27437-3
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-2(a)
+    - NIST-800-53-AU-2(c)
+    - NIST-800-53-AU-2(d)
+    - NIST-800-53-AU-2(4)
+    - NIST-800-53-AU-6(9)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.2
+    - CJIS-5.4.1.1
+    - DISA-STIG-RHEL-07-030360
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Overwrites the rule in rules.d
+  lineinfile:
+    path: "{{ item.1.path }}"
+    line: '-a always,exit -F path={{ item.0.item }} -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: no
+    regexp: "^.*path={{ item.0.item }} .*$"
+  with_subelements:
+    - "{{ files_result.results }}"
+    - files
+  tags:
+    - audit_rules_privileged_commands
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27437-3
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-2(a)
+    - NIST-800-53-AU-2(c)
+    - NIST-800-53-AU-2(d)
+    - NIST-800-53-AU-2(4)
+    - NIST-800-53-AU-6(9)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.2
+    - CJIS-5.4.1.1
+    - DISA-STIG-RHEL-07-030360
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Adds the rule in rules.d
+  lineinfile:
+    path: /etc/audit/rules.d/privileged.rules
+    line: '-a always,exit -F path={{ item.item }} -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  with_items:
+    - "{{ files_result.results }}"
+  when: item.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27437-3
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-2(a)
+    - NIST-800-53-AU-2(c)
+    - NIST-800-53-AU-2(d)
+    - NIST-800-53-AU-2(4)
+    - NIST-800-53-AU-6(9)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.2
+    - CJIS-5.4.1.1
+    - DISA-STIG-RHEL-07-030360
+
+# Adds/overwrites the rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path={{ item.item }} -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+    regexp: "^.*path={{ item.item }} .*$"
+  with_items:
+    - "{{ files_result.results }}"
+  tags:
+    - audit_rules_privileged_commands
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27437-3
+    - NIST-800-53-AC-17(7)
+    - NIST-800-53-AU-1(b)
+    - NIST-800-53-AU-2(a)
+    - NIST-800-53-AU-2(c)
+    - NIST-800-53-AU-2(d)
+    - NIST-800-53-AU-2(4)
+    - NIST-800-53-AU-6(9)
+    - NIST-800-53-AU-12(a)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-53-IR-5
+    - NIST-800-171-3.1.7
+    - PCI-DSS-Req-10.2.2
+    - CJIS-5.4.1.1
+    - DISA-STIG-RHEL-07-030360
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/bin/su.*$"
+    patterns: "*.rules"
+  register: find_su
+  tags:
+    - audit_rules_privileged_commands_su
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80400-5
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030680
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_su.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_su
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80400-5
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030680
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_su.files | map(attribute='path') | list | first }}"
+  when: find_su.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_su
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80400-5
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030680
+
+- name: Inserts/replaces the su rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/bin/su -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_su
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80400-5
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030680
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the su rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the su rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/bin/su -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_su
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80400-5
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030680
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the rule in /etc/audit/rules.d
+
+- name: Search /etc/audit/rules.d for audit rule entries
+  find:
+    paths: "/etc/audit/rules.d"
+    recurse: no
+    contains: "^.*path=/usr/bin/newgrp.*$"
+    patterns: "*.rules"
+  register: find_newgrp
+  tags:
+    - audit_rules_privileged_commands_newgrp
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80403-9
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030710
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files:
+      - /etc/audit/rules.d/privileged.rules
+  when: find_newgrp.matched == 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_newgrp
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80403-9
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030710
+
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files:
+      - "{{ find_newgrp.files | map(attribute='path') | list | first }}"
+  when: find_newgrp.matched > 0 and (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+  tags:
+    - audit_rules_privileged_commands_newgrp
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80403-9
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030710
+
+- name: Inserts/replaces the newgrp rule in rules.d
+  lineinfile:
+    path: "{{ all_files[0] }}"
+    line: '-a always,exit -F path=/usr/bin/newgrp -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_newgrp
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80403-9
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030710
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+# Inserts/replaces the newgrp rule in /etc/audit/audit.rules
+
+- name: Inserts/replaces the newgrp rule in audit.rules
+  lineinfile:
+    path: /etc/audit/audit.rules
+    line: '-a always,exit -F path=/usr/bin/newgrp -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged'
+    create: yes
+  tags:
+    - audit_rules_privileged_commands_newgrp
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80403-9
+    - NIST-800-53-AU-3(1)
+    - NIST-800-53-AU-12(c)
+    - NIST-800-171-3.1.7
+    - DISA-STIG-RHEL-07-030710
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: XCCDF Value sysctl_net_ipv4_icmp_echo_ignore_broadcasts_value # promote to variable
+  set_fact:
+    sysctl_net_ipv4_icmp_echo_ignore_broadcasts_value: !!str 1
+  tags:
+    - always
+
+- name: Ensure sysctl net.ipv4.icmp_echo_ignore_broadcasts is set
+  sysctl:
+    name: net.ipv4.icmp_echo_ignore_broadcasts
+    value: "{{ sysctl_net_ipv4_icmp_echo_ignore_broadcasts_value }}"
+    state: present
+    reload: yes
+  tags:
+    - sysctl_net_ipv4_icmp_echo_ignore_broadcasts
+    - medium_severity
+    - disable_strategy
+    - low_complexity
+    - medium_disruption
+    - CCE-80165-4
+    - NIST-800-53-AC-4
+    - NIST-800-53-CM-7
+    - NIST-800-53-SC-5
+    - NIST-800-171-3.1.20
+    - CJIS-5.10.1.1
+    - DISA-STIG-RHEL-07-040630
+  when:  # Bare-metal/VM task, not applicable for containers
+    - (ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker")
+
+- name: Add auth pam_faillock preauth even_deny_root before pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: sufficient
+    module_path: pam_unix.so
+    new_type: auth
+    new_control: required
+    new_module_path: pam_faillock.so
+    module_arguments: 'preauth
+        silent
+        even_deny_root'
+    state: before
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_deny_root
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80353-6
+    - NIST-800-53-AC-7(b)
+    - DISA-STIG-RHEL-07-010330
+
+
+- name: Add even_deny_root argument to auth pam_faillock preauth
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: required
+    module_path: pam_faillock.so
+    module_arguments: 'preauth
+        silent
+        even_deny_root'
+    state: args_present
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_deny_root
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80353-6
+    - NIST-800-53-AC-7(b)
+    - DISA-STIG-RHEL-07-010330
+
+
+- name: Add auth pam_faillock authfail even_deny_root after pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: sufficient
+    module_path: pam_unix.so
+    new_type: auth
+    new_control: '[default=die]'
+    new_module_path: pam_faillock.so
+    module_arguments: 'authfail
+        even_deny_root'
+    state: after
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_deny_root
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80353-6
+    - NIST-800-53-AC-7(b)
+    - DISA-STIG-RHEL-07-010330
+
+
+- name: Add even_deny_root argument to auth pam_faillock authfail
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: '[default=die]'
+    module_path: pam_faillock.so
+    module_arguments: 'authfail
+        even_deny_root'
+    state: args_present
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_deny_root
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80353-6
+    - NIST-800-53-AC-7(b)
+    - DISA-STIG-RHEL-07-010330
+
+
+- name: Add account pam_faillock before pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: account
+    control: required
+    module_path: pam_unix.so
+    new_type: account
+    new_control: required
+    new_module_path: pam_faillock.so
+    state: before
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_deny_root
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80353-6
+    - NIST-800-53-AC-7(b)
+    - DISA-STIG-RHEL-07-010330
+
+- name: XCCDF Value var_accounts_passwords_pam_faillock_unlock_time # promote to variable
+  set_fact:
+    var_accounts_passwords_pam_faillock_unlock_time: !!str never
+  tags:
+    - always
+
+- name: Add auth pam_faillock preauth unlock_time before pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: sufficient
+    module_path: pam_unix.so
+    new_type: auth
+    new_control: required
+    new_module_path: pam_faillock.so
+    module_arguments: 'preauth
+        silent
+        unlock_time={{ var_accounts_passwords_pam_faillock_unlock_time }}'
+    state: before
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_unlock_time
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-26884-7
+    - NIST-800-53-AC-7(b)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.7
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320
+
+
+- name: Add unlock_time argument to pam_faillock preauth
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: required
+    module_path: pam_faillock.so
+    module_arguments: 'preauth
+        silent
+        unlock_time={{ var_accounts_passwords_pam_faillock_unlock_time }}'
+    state: args_present
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_unlock_time
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-26884-7
+    - NIST-800-53-AC-7(b)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.7
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320
+
+
+- name: Add auth pam_faillock authfail unlock_interval after pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: sufficient
+    module_path: pam_unix.so
+    new_type: auth
+    new_control: '[default=die]'
+    new_module_path: pam_faillock.so
+    module_arguments: 'authfail
+        unlock_time={{ var_accounts_passwords_pam_faillock_unlock_time }}'
+    state: after
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_unlock_time
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-26884-7
+    - NIST-800-53-AC-7(b)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.7
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320
+
+
+- name: Add unlock_time argument to auth pam_faillock authfail
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: '[default=die]'
+    module_path: pam_faillock.so
+    module_arguments: 'authfail
+        unlock_time={{ var_accounts_passwords_pam_faillock_unlock_time }}'
+    state: args_present
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_unlock_time
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-26884-7
+    - NIST-800-53-AC-7(b)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.7
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320
+
+
+- name: Add account pam_faillock before pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: account
+    control: required
+    module_path: pam_unix.so
+    new_type: account
+    new_control: required
+    new_module_path: pam_faillock.so
+    state: before
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_unlock_time
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-26884-7
+    - NIST-800-53-AC-7(b)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.7
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320
+
+- name: XCCDF Value var_password_pam_unix_remember # promote to variable
+  set_fact:
+    var_password_pam_unix_remember: !!str 5
+  tags:
+    - always
+
+- name: "Do not allow users to reuse recent passwords - system-auth (change)"
+  replace:
+    dest: /etc/pam.d/system-auth
+    follow: yes
+    regexp: '^(password\s+sufficient\s+pam_unix\.so\s.*remember\s*=\s*)(\S+)(.*)$'
+    replace: '\g<1>{{ var_password_pam_unix_remember }}\g<3>'
+  tags:
+    - accounts_password_pam_unix_remember
+    - medium_severity
+    - configure_strategy
+    - low_complexity
+    - medium_disruption
+    - CCE-26923-3
+    - NIST-800-53-IA-5(f)
+    - NIST-800-53-IA-5(1)(e)
+    - NIST-800-171-3.5.8
+    - PCI-DSS-Req-8.2.5
+    - CJIS-5.6.2.1.1
+    - DISA-STIG-RHEL-07-010270
+
+
+- name: "Do not allow users to reuse recent passwords - system-auth (add)"
+  replace:
+    dest: /etc/pam.d/system-auth
+    follow: yes
+    regexp: '^password\s+sufficient\s+pam_unix\.so\s(?!.*remember\s*=\s*).*$'
+    replace: '\g<0> remember={{ var_password_pam_unix_remember }}'
+  tags:
+    - accounts_password_pam_unix_remember
+    - medium_severity
+    - configure_strategy
+    - low_complexity
+    - medium_disruption
+    - CCE-26923-3
+    - NIST-800-53-IA-5(f)
+    - NIST-800-53-IA-5(1)(e)
+    - NIST-800-171-3.5.8
+    - PCI-DSS-Req-8.2.5
+    - CJIS-5.6.2.1.1
+    - DISA-STIG-RHEL-07-010270
+
+- name: XCCDF Value var_accounts_passwords_pam_faillock_fail_interval # promote to variable
+  set_fact:
+    var_accounts_passwords_pam_faillock_fail_interval: !!str 900
+  tags:
+    - always
+
+- name: Add auth pam_faillock preauth fail_interval before pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: sufficient
+    module_path: pam_unix.so
+    new_type: auth
+    new_control: required
+    new_module_path: pam_faillock.so
+    module_arguments: 'preauth
+        silent
+        fail_interval={{ var_accounts_passwords_pam_faillock_fail_interval }}'
+    state: before
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_interval
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27297-1
+    - NIST-800-53-AC-7(a)
+    - DISA-STIG-RHEL-07-010320
+
+
+- name: Add fail_interval argument to auth pam_faillock preauth
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: required
+    module_path: pam_faillock.so
+    module_arguments: 'preauth
+        silent
+        fail_interval={{ var_accounts_passwords_pam_faillock_fail_interval }}'
+    state: args_present
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_interval
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27297-1
+    - NIST-800-53-AC-7(a)
+    - DISA-STIG-RHEL-07-010320
+
+
+- name: Add auth pam_faillock aufthfail fail_interval after pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: sufficient
+    module_path: pam_unix.so
+    new_type: auth
+    new_control: '[default=die]'
+    new_module_path: pam_faillock.so
+    module_arguments: 'authfail
+        fail_interval={{ var_accounts_passwords_pam_faillock_fail_interval }}'
+    state: after
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_interval
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27297-1
+    - NIST-800-53-AC-7(a)
+    - DISA-STIG-RHEL-07-010320
+
+
+- name: Add fail_interval argument to auth pam_faillock authfail
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: '[default=die]'
+    module_path: pam_faillock.so
+    module_arguments: 'authfail
+        fail_interval={{ var_accounts_passwords_pam_faillock_fail_interval }}'
+    state: args_present
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_interval
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27297-1
+    - NIST-800-53-AC-7(a)
+    - DISA-STIG-RHEL-07-010320
+
+
+- name: Add account pam_faillock before pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: account
+    control: required
+    module_path: pam_unix.so
+    new_type: account
+    new_control: required
+    new_module_path: pam_faillock.so
+    state: before
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_interval
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27297-1
+    - NIST-800-53-AC-7(a)
+    - DISA-STIG-RHEL-07-010320
+
+- name: XCCDF Value var_accounts_passwords_pam_faillock_deny # promote to variable
+  set_fact:
+    var_accounts_passwords_pam_faillock_deny: !!str 3
+  tags:
+    - always
+
+- name: Add auth pam_faillock preauth deny before pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: sufficient
+    module_path: pam_unix.so
+    new_type: auth
+    new_control: required
+    new_module_path: pam_faillock.so
+    module_arguments: 'preauth
+        silent
+        deny={{ var_accounts_passwords_pam_faillock_deny }}'
+    state: before
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_deny
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27350-8
+    - NIST-800-53-AC-7(a)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.6
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320
+
+
+- name: Add deny argument to auth pam_faillock preauth
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: required
+    module_path: pam_faillock.so
+    module_arguments: 'preauth
+        silent
+        deny={{ var_accounts_passwords_pam_faillock_deny }}'
+    state: args_present
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_deny
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27350-8
+    - NIST-800-53-AC-7(a)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.6
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320
+
+
+- name: Add auth pam_faillock authfail deny after pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    control: sufficient
+    module_path: pam_unix.so
+    new_type: auth
+    new_control: '[default=die]'
+    new_module_path: pam_faillock.so
+    module_arguments: 'authfail
+        deny={{ var_accounts_passwords_pam_faillock_deny }}'
+    state: after
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_deny
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27350-8
+    - NIST-800-53-AC-7(a)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.6
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320
+
+
+- name: Add deny argument to auth pam_faillock authfail
+  pamd:
+    name: "{{ item }}"
+    type: auth
+    new_type: auth
+    control: '[default=die]'
+    module_path: pam_faillock.so
+    module_arguments: 'authfail
+        deny={{ var_accounts_passwords_pam_faillock_deny }}'
+    state: args_present
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_deny
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27350-8
+    - NIST-800-53-AC-7(a)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.6
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320
+
+
+- name: Add account pam_faillock before pam_unix.so
+  pamd:
+    name: "{{ item }}"
+    type: account
+    control: required
+    module_path: pam_unix.so
+    new_type: account
+    new_control: required
+    new_module_path: pam_faillock.so
+    state: before
+  loop:
+    - system-auth
+    - password-auth
+  tags:
+    - accounts_passwords_pam_faillock_deny
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-27350-8
+    - NIST-800-53-AC-7(a)
+    - NIST-800-171-3.1.8
+    - PCI-DSS-Req-8.1.6
+    - CJIS-5.5.3
+    - DISA-STIG-RHEL-07-010320

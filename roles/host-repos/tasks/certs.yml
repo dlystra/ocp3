@@ -1,0 +1,36 @@
+---
+- name: Create Key
+  openssl_privatekey:
+    path: /var/lib/yum/server.key
+    type: RSA
+    size: 1024
+
+- name: Create CSR
+  openssl_csr:
+    path: /tmp/server.csr
+    privatekey_path: /var/lib/yum/server.key
+    common_name: "{{ ansible_facts.env.HOSTNAME }}"
+
+- name: Create Self-signed Certificate
+  openssl_certificate:
+    path: /var/lib/yum/server.crt
+    privatekey_path: /var/lib/yum/server.key
+    csr_path: /tmp/server.csr
+    provider: selfsigned
+
+- name: Change Key Permissions
+  file:
+    path: /var/lib/yum/server.key
+    mode: '0600'
+
+- name: Change SElinux Context of Certificate and Key
+  sefcontext:
+    target: /var/lib/yum/{{ item }}
+    setype: cert_t
+    state: present
+  loop:
+    - server.crt
+    - server.key
+
+- name: Restorcon on Certificate and Key
+  command: restorecon -vF /var/lib/yum/server.key /var/lib/yum/server.crt

@@ -1,0 +1,66 @@
+---
+# - name: Baseline Configure OCP Instances
+#   hosts: tag_Type_OSE_App:tag_Type_OSE_Infra:tag_Type_OSE_Master:tag_Type_OSE_Bastion
+#   connection: ssh
+#   gather_facts: true
+#   become: true
+#   roles:
+#     - dns-config
+
+- name: Add Docker storage to nodes
+  hosts: tag_Type_OSE_App:tag_Type_OSE_Infra:tag_Type_OSE_Master
+  connection: ssh
+  gather_facts: true
+  become: true
+  roles:
+    - docker-storage
+
+- name: Install and Configure OCP
+  hosts: localhost
+  gather_facts: true
+  roles:
+    - openshift
+
+# - name: Configure OCP Automation accounts
+#   hosts: tag_Type_OSE_Master[0]
+#   connection: ssh
+#   gather_facts: true
+#   roles:
+#     - openshift-configuration
+
+# - name: Update node configuration for service mesh
+#   hosts: tag_Type_OSE_App
+#   connection: ssh
+#   gather_facts: true
+#   become: true
+#   tasks:
+#     - name: Create config file for Elasticsearch application
+#       copy:
+#         dest: /etc/sysctl.d/99-elasticsearch.conf
+#         content: vm.max_map_count = 262144
+#     - name: Execute systcl command
+#       shell: sysctl vm.max_map_count=262144
+
+#- name: Harden OCP nodes
+#  hosts: tag_Type_OSE_APP:tag_Type_OSE_Master
+#  connection: ssh
+#  gather_facts: true
+#  become: true
+#  roles:
+#    - secure-openshift-nodes
+#
+#- name: Harden OCP Master nodes
+#  hosts: tag_Type_OSE_Master
+#  connection: ssh
+#  gather_facts: true
+#  become: true
+#  roles:
+#    - secure-openshift-master
+#
+#- name: Harden OCP Worker nodes
+#  hosts: tag_Type_OSE_APP
+#  connection: ssh
+#  gather_facts: true
+#  become: true
+#  roles:
+#    - secure-openshift-workers

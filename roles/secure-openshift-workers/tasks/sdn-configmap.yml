@@ -1,0 +1,67 @@
+---
+- name: Login to OpenShift cluster
+  command: "oc login -u system:admin --config={{ kube_conf }}"
+
+- name: Extract current node configuration
+  tempfile:
+    state: directory
+  register: temp_dir
+  
+- command: oc extract cm/node-config-compute -n openshift-node --to={{ temp_dir.path }}
+  register: cm_path
+ 
+- yedit:
+    src: "{{ cm_path.stdout }}"
+    key: networkConfig.networkPluginName
+    value: "redhat/openshift-ovs-networkpolicy" 
+
+#- yedit:
+#    src: "{{ cm_path.stdout }}"
+#    key: networkConfig.mtu
+#    value: 8951
+
+- name: Save modified node configuration
+  command: oc create configmap node-config-compute-update --from-file {{ cm_path.stdout }} -n openshift-node
+  
+- command: oc delete configmap node-config-compute -n openshift-node
+  
+- command: oc create configmap node-config-compute --from-file {{ cm_path.stdout }} -n openshift-node
+  
+- command: oc delete configmap node-config-compute-update -n openshift-node
+
+- name: Extract infra node config map
+  command: oc extract cm/node-config-infra -n openshift-node --to={{ temp_dir.path }}
+  register: cm_path_infra
+
+- yedit:
+    src: "{{ cm_path_infra.stdout }}"
+    key: networkConfig.networkPluginName
+    value: "redhat/openshift-ovs-networkpolicy"
+  when: net_policy_infra_node.stdout == ""
+
+- name: Save modified infra node configuration
+  command: oc create configmap node-config-infra-update --from-file {{ cm_path_infra.stdout }} -n openshift-node
+
+- command: oc delete configmap node-config-infra -n openshift-node
+
+- command: oc create configmap node-config-infra --from-file {{ cm_path_infra.stdout }} -n openshift-node
+
+- command: oc delete configmap node-config-infra-update -n openshift-node
+
+- name: Extract master node config map
+  command: oc extract cm/node-config-master -n openshift-node --to={{ temp_dir.path }}
+  register: cm_path_master
+
+- yedit:
+    src: "{{ cm_path_master.stdout }}"
+    key: networkConfig.networkPluginName
+    value: "redhat/openshift-ovs-networkpolicy"
+
+- name: Save modified master node configuration
+  command: oc create configmap node-config-master-update --from-file {{ cm_path_master.stdout }} -n openshift-node
+
+- command: oc delete configmap node-config-master -n openshift-node
+
+- command: oc create configmap node-config-master --from-file {{ cm_path_master.stdout }} -n openshift-node
+
+- command: oc delete configmap node-config-master-update -n openshift-node

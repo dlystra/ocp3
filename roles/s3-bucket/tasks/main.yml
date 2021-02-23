@@ -1,0 +1,10 @@
+---
+# TASKS
+
+- name: Create task to create an s3 bucket.
+  import_tasks: create.yml
+  when: ec2_instance_destroy == false
+
+- name: Destroy task to destroy an s3 bucket.
+  import_tasks: destroy.yml
+  when: ec2_instance_destroy == true

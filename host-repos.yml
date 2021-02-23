@@ -1,0 +1,14 @@
+---
+- name: Create Hosted Repositories
+  hosts: localhost
+  connection: local
+  become: yes
+  roles:
+    - host-repos
+
+- name: Add repos to Nodes
+  hosts: tag_Type_OSE_Infra:tag_Type_OSE_Master:tag_Type_OSE_App:tag_Type_Docker
+  connection: ssh
+  become: yes
+  roles:
+    - add-repos

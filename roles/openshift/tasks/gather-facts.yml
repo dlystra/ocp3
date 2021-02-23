@@ -1,0 +1,87 @@
+---
+- name: fact-gather | Gather facts for the Docker registry
+  ec2_instance_facts:
+    region: '{{ region }}'
+    filters:
+      tag:Type: Registry
+      tag:EnvID: cdn
+  register: registry
+  delegate_to: localhost
+
+- name: fact-gather | Set the registry DNS name fact
+  set_fact:
+    image_registry: '{{ registry.instances.0.private_dns_name }}'
+  when: registry.instances | length > 0
+
+- name: fact-gather | Gather facts for the Openshift bastion
+  ec2_instance_facts:
+    region: '{{ region }}'
+    filters:
+      tag:Type: OSE_Bastion
+      tag:EnvID: '{{ env_id }}'
+      instance-state-name: running
+  delegate_to: localhost
+
+- name: fact-gather | Gather facts for the OpenShift masters
+  ec2_instance_facts:
+    region: '{{ region }}'
+    filters:
+      tag:Type: OSE_Master
+      tag:EnvID: '{{ env_id }}'
+      instance-state-name: running
+  register: ocp_masters
+  delegate_to: localhost
+
+- name: fact-gather | Set the OCP masters DNS names fact
+  set_fact:
+    ocp_masters: "{{ ocp_masters.instances | map(attribute='private_dns_name') | list }}"
+
+- name: fact-gather | Gather facts for the OpenShift infrastructure nodes
+  ec2_instance_facts:
+    region: '{{ region }}'
+    filters:
+      tag:Type: OSE_Infra
+      tag:EnvID: '{{ env_id }}'
+      instance-state-name: running
+  register: ocp_infras
+  delegate_to: localhost
+
+- name: fact-gather | Set the OCP infra nodes DNS names fact
+  set_fact:
+    ocp_infras: "{{ ocp_infras.instances | map(attribute='private_dns_name') | list }}"
+
+- name: fact-gather | Gather facts for the OpenShift application nodes
+  ec2_instance_facts:
+    region: '{{ region }}'
+    filters:
+      tag:Type: OSE_App
+      tag:EnvID: '{{ env_id }}'
+      instance-state-name: running
+  register: ocp_apps
+  delegate_to: localhost
+
+- name: fact-gather | Set the OCP app nodes DNS names fact
+  set_fact:
+    ocp_apps: "{{ ocp_apps.instances | map(attribute='private_dns_name') | list }}"
+
+- name: fact-gather | Gather OCP master ELB facts
+  elb_classic_lb_facts:
+    names: '{{ vpc_name }}-ocp-master-elb'
+    region: '{{ region }}'
+  register: master_elb_facts
+  delegate_to: localhost
+
+- name: fact-gather | Gather OCP internal master ELB facts
+  elb_classic_lb_facts:
+    names: '{{ vpc_name }}-ocp-intmast-elb'
+    region: '{{ region }}'
+  register: internal_master_elb_facts
+  delegate_to: localhost
+
+- name: fact-gather | Set the public load balancer dns_name fact
+  set_fact:
+    public_lb: "{{ master_elb_facts.elbs.0.dns_name }}"
+
+- name: fact-gather | Set the internal load balancer dns_name fact
+  set_fact:
+    internal_lb: "{{ internal_master_elb_facts.elbs.0.dns_name }}"

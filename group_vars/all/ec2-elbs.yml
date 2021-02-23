@@ -1,0 +1,61 @@
+---
+elbs:
+  - name: "{{ vpc_name }}-ocp-router-elb"
+    scheme: internal
+    security_groups:
+      - "{{ default_security_group }}"
+      - "{{ vpc_name }}-ocp-routers-elb"
+    type: OSE_Infra_ELB
+    subnet: "{{ az_b_subnet_id }},{{ az_c_subnet_id }}"
+    listeners:
+      - protocol: tcp
+        load_balancer_port: 80
+        instance_port: 80
+      - protocol: tcp
+        load_balancer_port: 443
+        instance_port: 443
+    ping_protocol: HTTPS
+    ping_port: 1936
+    ping_path: /healthz
+    response_timeout: 2
+    interval: 5
+    unhealthy_threshold: 2
+    healthy_threshold: 2
+
+  - name: "{{ vpc_name }}-ocp-master-elb"
+    scheme: internal
+    security_groups:
+      - "{{ default_security_group }}"
+      - "{{ vpc_name }}-ocp-masters-elb"
+    type: OSE_Master_ELB
+    subnet: "{{ az_b_subnet_id }},{{ az_c_subnet_id }}"
+    listeners:
+      - protocol: tcp
+        load_balancer_port: 443
+        instance_port: 443
+    ping_protocol: HTTPS
+    ping_port: 443
+    ping_path: /healthz
+    response_timeout: 2
+    interval: 5
+    unhealthy_threshold: 2
+    healthy_threshold: 2
+
+  - name: "{{ vpc_name }}-ocp-intmast-elb"
+    scheme: internal
+    security_groups:
+      - "{{ default_security_group }}"
+      - "{{ vpc_name }}-ocp-masters-internal-elb"
+    type: OSE_Master_ELB
+    subnet: "{{ az_b_subnet_id }},{{ az_c_subnet_id }}"
+    listeners:
+      - protocol: tcp
+        load_balancer_port: 443
+        instance_port: 443
+    ping_protocol: HTTPS
+    ping_port: 443
+    ping_path: /healthz
+    response_timeout: 2
+    interval: 5
+    unhealthy_threshold: 2
+    healthy_threshold: 2

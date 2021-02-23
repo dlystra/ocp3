@@ -1,0 +1,20 @@
+---
+- name: Install Prerequisite Packages
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Install Packages
+      yum:
+        name: python-boto,python2-boto3
+        state: latest
+
+- name: Create AWS Environment
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - iam-policy
+    - ec2-sg
+    - ec2-elb
+    - ec2-instance
+    - s3-bucket

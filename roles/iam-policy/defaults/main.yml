@@ -1,0 +1,15 @@
+---
+# Example IAM Policy var structure
+iam_policies:
+  - name: example-policy
+    description: Example IAM Policy
+    policy:
+      Version: '2012-10-17'
+      Statement:
+      - Sid: 1
+        Effect: Allow
+        Action:
+        - ec2:DescribeInstances
+        Resource: "*"
+    role_name: example-role
+    service: ec2

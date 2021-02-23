@@ -1,0 +1,80 @@
+---
+- name: ansible-config | Configure local OCP inventory
+  template:
+    src: ../templates/inv.j2
+    dest: /tmp/inventory
+    mode: 400
+  become: true
+
+- name: ansible-config | Install ansible OCP playbook
+  yum:
+    name: openshift-ansible
+    state: latest
+  become: true
+
+- name: ansible-config | Disable host_key_checking
+  replace:
+    path: /etc/ansible/ansible.cfg
+    regexp: '^#host_key_checking'
+    replace: 'host_key_checking'
+  become: true
+
+- name: ansible-config | Enable logging
+  replace:
+    path: /etc/ansible/ansible.cfg
+    regexp: '^#log_path'
+    replace: 'log_path'
+  become: true
+
+# - name: ansible-config | Execute remote prerequisites playbook
+#   shell: |
+#     ansible-playbook -i /tmp/inventory --private-key "/home/ec2-user/.ssh/id_rsa" \
+#       /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
+#   become: true
+
+# - name: ansible-config | Execute remote deployment script
+#   shell: |
+#     ansible-playbook -i /tmp/inventory --private-key "/home/ec2-user/.ssh/id_rsa" \
+#       /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml
+#   become: true
+
+# - name: ansible-config | Delete tmp inventory
+#   file:
+#     path: /tmp/inventory
+#     state: absent
+#   become: true
+
+# - name: Enable task profiling
+#   lineinfile:
+#     path: /etc/ansible/ansible.cfg
+#     regexp: '^#callback_whitelist'
+#     line: 'callback_whitelist = profile_tasks'
+#   become: true
+
+# - name: Enable debug callback
+#   lineinfile:
+#     path: /etc/ansible/ansible.cfg
+#     regexp: '^#stdout_callback'
+#     line: 'stdout_callback = debug'
+#   become: true
+
+# - name: Execute Remote ansible OCP playbook
+#   block:
+#     - name: Execute Remote prereqs playbook
+#       shell: |
+#         ansible-playbook -i /tmp/inventory --private-key "/tmp/ssh.pem" \
+#           /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
+#       become: true
+
+#     - name: Execute Remote deployment script
+#       shell: |
+#         ansible-playbook -i /tmp/inventory --private-key "/tmp/ssh.pem" \
+#           /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml
+#       become: true
+
+#     - name: Delete tmp inventory
+#       file:
+#         path: /tmp/inventory
+#         state: absent
+#       become: true
+#   when: execute_remote_ocp_deployment

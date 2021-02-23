@@ -1,0 +1,21 @@
+---
+execute_remote_ocp_deployment: true
+image_registry: registry.redhat.io
+insecure_registry: false
+openshift_master_cluster_public_hostname: '{{ default_route }}'
+availability_zone: "{{ lookup('env','AVAILABILITY_ZONE') }}"
+aws_access_key_id: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
+aws_secret_access_key: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
+ec2_region: "{{ lookup('env','EC2_REGION') }}"
+ocp_registry_name: "{{ lookup('env','OCP_REGISTRY_NAME') }}"
+ocp_registry_key: "{{ lookup('env','OCP_REGISTRY_KEY') }}"
+
+ocp_masters_cert_chain: "{{ lookup('env','OCP_MASTERS_CERT_CHAIN') }}"
+ocp_masters_cert_key: "{{ lookup('env','OCP_MASTERS_CERT_KEY') }}"
+ocp_masters_cert: "{{ lookup('env','OCP_MASTERS_CERT') }}"
+
+ocp_apps_cert_chain: "{{ lookup('env','OCP_APPS_CERT_CHAIN') }}"
+ocp_apps_cert_key: "{{ lookup('env','OCP_APPS_CERT_KEY') }}"
+ocp_apps_cert: "{{ lookup('env','OCP_APPS_CERT') }}"
+
+keycloak_cert_chain: "{{ lookup('env','KEYCLOAK_CERT_CHAIN') }}"

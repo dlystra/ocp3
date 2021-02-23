@@ -1,0 +1,4 @@
+---
+dns_config_hostname: USE_CURRENT_HOSTNAME
+dns_config_domain: "{{ lookup('env', 'IDM_DOMAIN') }}"
+dns_config_localhost_in_etc_hosts: false

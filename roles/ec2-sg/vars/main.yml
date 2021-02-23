@@ -1,0 +1,3 @@
+---
+# vars file for prefab-role
+pip_path: /usr/lib/python2.7/site-packages/pip

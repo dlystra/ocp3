@@ -1,0 +1,8 @@
+---
+- name: enable-repos | Explicitily enable Red Hat package repos
+  shell: 'yum-config-manager --disable \*'
+  become: yes
+
+- name: enable-repos | Enable Red Hat OCP repos
+  shell: 'yum-config-manager --enable rhel-7-server-rpms" --enable="rhel-7-server-extras-rpms" --enable="rhel-7-server-ose-3.11-rpms" --enable="rhel-7-server-ansible-2.7-rpms" --enable="rh-gluster-3-client-for-rhel-7-server-rpms'
+  become: yes

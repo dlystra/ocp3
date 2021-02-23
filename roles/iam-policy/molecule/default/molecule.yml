@@ -1,0 +1,41 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: ec2
+lint:
+  name: yamllint
+platforms:
+  - name: registry-test-iam-policy-development # Change this to what you want your instance name to be
+    image: ami-a1d349c0
+    instance_type: m5.xlarge
+    vpc_subnet_id: subnet-055c3061
+    envid: registry-test-vpc
+provisioner:
+  name: ansible
+  lint:
+    name: ansible-lint
+verifier:
+  name: testinfra
+  lint:
+    name: flake8
+scenario:
+  name: default
+  test_sequence:
+    #- lint
+    - destroy
+    - dependency
+    #- syntax
+    - create
+    - prepare
+    - converge
+    #- idempotence
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+  converge_sequence:
+    - dependency
+    #- create
+    - prepare
+    - converge

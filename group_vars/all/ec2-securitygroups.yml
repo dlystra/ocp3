@@ -1,0 +1,385 @@
+# Vars file for default security group
+security_groups:
+
+  - group: default
+    description: Default Security Group
+    rules_inbound:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ cidr }}"
+      - proto: icmp
+        from_port: 8
+        to_port: -1
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ cidr }}"
+      - proto: icmp
+        from_port: 8
+        to_port: -1
+        cidr_ip: "{{ cidr }}"        
+    rules_outbound:
+      - proto: -1
+        from_port: 0
+        to_port: 0
+        cidr_ip: '0.0.0.0/0'
+
+  - group: "{{ vpc_name }}-satellite"
+    description: Red Hat Satellite
+    rules_inbound:
+      #HTTP
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: "{{ cidr }}"
+      #HTTPS
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: '0.0.0.0/0'
+      #ICMP
+      - proto: icmp
+        from_port: 8
+        to_port: -1
+        cidr_ip: "{{ cidr }}"
+      #SSH
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ cidr }}"
+      #Cockpit?
+      - proto: tcp
+        from_port: 9090
+        to_port: 9090
+        cidr_ip: "{{ cidr }}"
+      #Puppet
+      - proto: tcp
+        from_port: 8140
+        to_port: 8140
+        cidr_ip: "{{ cidr }}"
+      #Katello Agent
+      - proto: tcp
+        from_port: 5647
+        to_port: 5647
+        cidr_ip: "{{ cidr }}"
+    rules_outbound:
+      #All
+      - proto: -1
+        from_port: 0
+        to_port: 0
+        cidr_ip: '0.0.0.0/0'
+
+  - group: "{{ vpc_name }}-ocp-masters-elb"
+    description: Red Hat OpenShift ELB masters
+    rules_inbound:
+      #HTTPS
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: '0.0.0.0/0'
+    rules_outbound:
+      #All
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        #cidr_ip: "{{ vpc_name }}-OCP_Masters"
+        cidr_ip: "{{ cidr }}"
+
+  - group: "{{ vpc_name }}-ocp-masters-internal-elb"
+    description: Red Hat OpenShift ELB Internal cluster traffic
+    rules_inbound:
+      #HTTPS
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: 
+          - "{{ cidr }}"
+        #cidr_ip: 
+        #  - "{{ vpc_name }}-OCP_Masters"
+        #  - "{{ vpc_name }}-OCP_Infra"
+        #  - "{{ vpc_name }}-OCP_Nodes"
+    rules_outbound:
+      #HTTPS
+      - proto: tcp
+        from_port: 443    
+        to_port: 443    
+        cidr_ip: "{{ cidr }}"
+        #cidr_ip: "{{ vpc_name }}-OCP_Masters"
+
+  - group: "{{ vpc_name }}-ocp-routers-elb"
+    description: Red Hat OpenShift ELB Router traffic
+    rules_inbound:
+      #HTTPS
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: '0.0.0.0/0'
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: '0.0.0.0/0'
+    rules_outbound:
+      #HTTPS
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: "{{ cidr }}"
+        #cidr_ip: "{{ vpc_name }}-OCP_Infra"
+      - proto: tcp
+        from_port: 1936
+        to_port: 1936
+        cidr_ip: "{{ cidr }}" 
+        #cidr_ip: "{{ vpc_name }}-OCP_Infra"
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: "{{ cidr }}"
+        #cidr_ip: "{{ vpc_name }}-OCP_Infra"
+
+  - group: "{{ vpc_name }}-ocp-bastion"
+    description: Red Hat OCP Bastion
+    rules_inbound:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ cidr }}"
+    rules_outbound:
+      #All
+      - proto: -1
+        from_port: 0
+        to_port: 0
+        cidr_ip: '0.0.0.0/0'
+
+  - group: "{{ vpc_name }}-ocp-nodes"
+    description: Red Hat OCP Nodes
+    rules_inbound:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: "{{ cidr }}"
+      - proto: udp
+        from_port: 4789
+        to_port: 4789
+        cidr_ip: "{{ cidr }}"
+      - proto: udp
+        from_port: 8053
+        to_port: 8053
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 8443
+        to_port: 8443
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 8444
+        to_port: 8444
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 9100
+        to_port: 9100
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 10250
+        to_port: 10250
+        cidr_ip: "{{ cidr }}"
+    rules_outbound:
+      #All
+      - proto: -1
+        from_port: 0
+        to_port: 0
+        cidr_ip: '0.0.0.0/0'
+
+  - group: "{{ vpc_name }}-ocp-masters"
+    description: Red Hat OCP Masters
+    rules_inbound:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: "0.0.0.0/0"
+      - proto: tcp
+        from_port: 53
+        to_port: 53
+        cidr_ip: "{{ cidr }}"
+      - proto: udp
+        from_port: 53
+        to_port: 53
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 8053
+        to_port: 8053
+        cidr_ip: "{{ cidr }}"
+      - proto: udp
+        from_port: 8053
+        to_port: 8053
+        cidr_ip: "{{ cidr }}"
+      - proto: udp
+        from_port: 4789
+        to_port: 4789
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 10250
+        to_port: 10250
+        cidr_ip: "{{ cidr }}"
+      - proto: udp
+        from_port: 2049
+        to_port: 2049
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 2049
+        to_port: 2049
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 2379
+        to_port: 2379
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 2380
+        to_port: 2380
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 9200
+        to_port: 9200
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 9300
+        to_port: 9300
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 9090
+        to_port: 9090
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 9100
+        to_port: 9100
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 8444
+        to_port: 8444
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 1936
+        to_port: 1936
+        cidr_ip: "{{ cidr }}"
+    rules_outbound:
+      #All
+      - proto: -1
+        from_port: 0
+        to_port: 0
+        cidr_ip: '0.0.0.0/0'
+
+  - group: "{{ vpc_name }}-ocp-infra"
+    description: Red Hat OCP Infra
+    rules_inbound:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: "0.0.0.0/0"
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: "0.0.0.0/0"
+      - proto: tcp
+        from_port: 53
+        to_port: 53
+        cidr_ip: "{{ cidr }}"
+      - proto: udp
+        from_port: 53
+        to_port: 53
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 8053
+        to_port: 8053
+        cidr_ip: "{{ cidr }}"
+      - proto: udp
+        from_port: 8053
+        to_port: 8053
+        cidr_ip: "{{ cidr }}"
+      - proto: udp
+        from_port: 4789
+        to_port: 4789
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 10250
+        to_port: 10250
+        cidr_ip: "{{ cidr }}"
+      - proto: udp
+        from_port: 2049
+        to_port: 2049
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 2049
+        to_port: 2049
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 2379
+        to_port: 2379
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 2380
+        to_port: 2380
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 9200
+        to_port: 9200
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 9300
+        to_port: 9300
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 9090
+        to_port: 9090
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 9100
+        to_port: 9100
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 8444
+        to_port: 8444
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 1936
+        to_port: 1936
+        cidr_ip: "{{ cidr }}"
+    rules_outbound:
+      #All
+      - proto: -1
+        from_port: 0
+        to_port: 0
+        cidr_ip: '0.0.0.0/0'
+
+  - group: "{{ vpc_name }}-docker"
+    description: Docker Registry
+    rules_inbound:
+      - proto: tcp
+        from_port: 5000
+        to_port: 5000
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: "{{ cidr }}"
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ cidr }}"
+    rules_outbound:
+      #All
+      - proto: -1
+        from_port: 0
+        to_port: 0
+        cidr_ip: '0.0.0.0/0'

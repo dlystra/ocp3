@@ -1,0 +1,14 @@
+---
+- name: Add repos
+  template:
+    src: redhat-local.repo.j2
+    dest: /etc/yum.repos.d/redhat-local.repo
+
+- name: Remove RHUI repos
+  file:
+    path: /etc/yum.repos.d/{{ item }}
+    state: absent
+  loop:
+    - redhat-rhui.repo
+    - redhat-rhui-client-config.repo
+    - redhat-rhui-beta.repo.disabled

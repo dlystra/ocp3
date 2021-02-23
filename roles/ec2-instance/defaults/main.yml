@@ -1,0 +1,3 @@
+---
+ec2_instance_destroy: '{{ marked_for_decommission | bool }}'
+marked_for_decomission: false

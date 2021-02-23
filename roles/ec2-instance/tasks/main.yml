@@ -1,0 +1,15 @@
+- name: Get default group from VPC
+  ec2_group_facts:
+    region: "{{ region }}"
+    filters:
+      vpc_id: "{{ vpc_id }}"
+      group_name: "default"
+  register: ec2_group_facts
+
+- name: Destroy Instances
+  include_tasks: destroy.yml
+  when: ec2_instance_destroy
+
+- name: Provision Instances
+  include_tasks: provision.yml
+  when: not ec2_instance_destroy

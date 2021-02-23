@@ -1,0 +1,48 @@
+---
+- name: create-docker-storage | Install Docker
+  package:
+    name: docker
+    state: present
+
+- name: create-docker-storage | Find Docker's storage device
+  shell: "/usr/bin/lsblk | /usr/bin/awk '/disk/ {print $1}' | /usr/bin/awk 'END{print}'"
+  register: docker_data_disk
+
+- name: create-docker-storage | Create and copy Docker storage setup file
+  copy:
+    content: |
+      STORAGE_DRIVER=overlay2
+      DEVS={{ docker_data_disk.stdout }}
+      CONTAINER_ROOT_LV_NAME={{ docker_lv_name }}
+      CONTAINER_ROOT_LV_SIZE=100%FREE
+      CONTAINER_ROOT_LV_MOUNT_PATH={{ docker_mount_point }}
+      VG={{ docker_vg_name }}
+    dest: /etc/sysconfig/docker-storage-setup
+  register: docker_storage_changed
+
+- name: create-docker-storage | Reinitialize Docker
+  block:
+  - name: create-docker-storage | Run docker-storage-setup
+    command: docker-storage-setup
+  - name: create-docker-storage | Find files to delete
+    find:
+      paths: "{{ docker_mount_point }}"
+      patterns: '*'
+    register: files_to_delete
+  - name: create-docker-storage | Delete files
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ files_to_delete.files }}"
+  - name: create-docker-storage | Restart Docker service
+    service:
+      name: docker
+      state: restarted
+  when: docker_storage_changed.changed
+  
+- name: create-docker-storage | Start and enable the Docker service
+  service:
+    name: docker
+    state: started
+    enabled: yes
+

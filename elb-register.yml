@@ -1,0 +1,55 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Gather env facts about target servers for ELB
+      ec2_instance_facts:
+        region: "{{ region }}"
+        filters:
+          tag:Type: OSE_Master
+          tag:EnvID: "{{ env_id }}"
+          instance-state-name: running
+      register: server_facts
+
+    - set_fact:
+         elb_target_ids: "{{ server_facts.instances | map(attribute='instance_id') | list }}"
+
+    - name: Attach Load Balancer
+      ignore_errors: true
+      ec2_elb:
+        region: "{{ region }}"
+        instance_id: "{{ item }}"
+        ec2_elbs: "{{ vpc_name }}-ocp-master-elb"
+        state: present
+      loop: "{{ elb_target_ids }}"
+
+    - name: Attach Load Balancer
+      ignore_errors: true
+      ec2_elb:
+        region: "{{ region }}"
+        instance_id: "{{ item }}"
+        ec2_elbs: "{{ vpc_name }}-ocp-intmast-elb"
+        state: present
+      loop: "{{ elb_target_ids }}"
+
+    - name: Gather env facts about target servers for ELB
+      ec2_instance_facts:
+        region: "{{ region }}"
+        filters:
+          tag:Type: OSE_Infra
+          tag:EnvID: "{{ env_id }}"
+          instance-state-name: running
+      register: server_facts
+
+    - set_fact:
+         elb_target_ids: "{{ server_facts.instances | map(attribute='instance_id') | list }}"
+
+    - name: Attach Load Balancer
+      ignore_errors: true
+      ec2_elb:
+        region: "{{ region }}"
+        instance_id: "{{ item }}"
+        ec2_elbs: "{{ vpc_name }}-ocp-router-elb"
+        state: present
+      loop: "{{ elb_target_ids }}"

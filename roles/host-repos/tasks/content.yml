@@ -1,0 +1,14 @@
+---
+- name: Create a Symbolic Link for Repo Data
+  file:
+    src: "{{ data_dir }}/repos"
+    dest: /var/www/html/repos
+    state: link
+    setype: httpd_sys_rw_content_t
+
+- name: Set SELinux Context for Repos
+  file:
+    path: "{{ data_dir }}/repos"
+    state: directory
+    setype: httpd_sys_rw_content_t
+    recurse: yes

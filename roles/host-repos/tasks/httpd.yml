@@ -1,0 +1,17 @@
+---
+- name: Create ssl.conf From Template
+  template:
+    src: ssl.conf.j2
+    dest: /etc/httpd/conf.d/ssl.conf
+
+- name: Change httpd.conf to listen on 443
+  lineinfile:
+    path: /etc/httpd/conf/httpd.conf
+    regexp: '^Listen 80'
+    line: Listen 443
+
+- name: Start/Enable httpd
+  service:
+    name: httpd
+    state: started
+    enabled: yes

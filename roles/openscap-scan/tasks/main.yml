@@ -1,0 +1,29 @@
+---
+
+- name: Gather facts for ports
+  listen_ports_facts:
+
+- name: install required packages
+  package:
+    name:
+      - openscap
+      - openscap-scanner
+      - scap-security-guide
+    state: present
+
+- name: List TCP ports
+  debug:
+    msg: "{{ ansible_facts.tcp_listen  | map(attribute='port') | sort | list }}"
+  register: tcp_list
+
+- name: append
+  lineinfile:
+    dest: /tmp/{{ ansible_hostname }}-ports
+    line: "{{ tcp_list }}"
+    create: yes
+    insertafter: EOF
+
+- name: OSCAP scan
+  shell: oscap xccdf eval --fetch-remote-resources --datastream-id scap_org.open-scap_datastream_from_xccdf_ssg-rhel7-xccdf-1.2.xml --xccdf-id scap_org.open-scap_cref_ssg-rhel7-xccdf-1.2.xml --profile xccdf_org.ssgproject.content_profile_stig-rhel7-disa --oval-results --results /tmp/{{ ansible_hostname }}.xml --results-arf /tmp/{{ ansible_hostname }}-arf.xml --report /tmp/{{ ansible_hostname }}.html "/usr/share/xml/scap/ssg/content/ssg-rhel7-ds.xml"
+  become: true
+  ignore_errors: true

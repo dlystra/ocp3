@@ -1,0 +1,3 @@
+---
+- name: Build IAM policies and attach them to their respective roles
+  include_tasks: build_attach.yml
