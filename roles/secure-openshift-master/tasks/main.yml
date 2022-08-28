@@ -1,6 +1,0 @@
----
-- include_tasks: master-configs.yml
-- include_tasks: configuration-files-masters.yml
-- include_tasks: controller-manager.yml
-- include_tasks: etcd.yml
-- include_tasks: sdn-masterconfig.yml

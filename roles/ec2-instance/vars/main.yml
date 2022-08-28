@@ -1,2 +1,0 @@
----
-default_subnet_id: '{{ public_subnet_id if item.assign_public_ip else private_subnet_id }}'

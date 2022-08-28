@@ -1,3 +1,0 @@
----
-- include_tasks: ocp-config.yml
-- include_tasks: firewalld-rules.yml

@@ -1,3 +1,0 @@
----
-- name: Configure Registry
-  include_tasks: registry.yml

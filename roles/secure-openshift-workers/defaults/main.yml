@@ -1,3 +1,0 @@
----
-# defaults file for secure-worker-nodes
-kube_conf: /etc/origin/master/admin.kubeconfig

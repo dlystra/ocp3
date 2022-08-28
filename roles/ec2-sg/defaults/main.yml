@@ -1,3 +1,0 @@
----
-region: "{{ lookup('env', 'AWS_DEFAULT_REGION') }}"
-disconnected: false

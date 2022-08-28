@@ -1,5 +1,0 @@
----
-- name: openshift | Install base packages
-  include_tasks: base-packages.yml
-- name: openshift | Execute remote Ansible playbook
-  include_tasks: ansible-config.yml

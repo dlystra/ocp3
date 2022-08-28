@@ -1,4 +1,0 @@
----
-docker_lv_name: var_lib_docker
-docker_mount_point: /var/lib/docker
-docker_vg_name: docker_vg

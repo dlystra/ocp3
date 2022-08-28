@@ -1,2 +1,0 @@
-# OpenScap Scan
-

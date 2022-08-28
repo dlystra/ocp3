@@ -1,4 +1,0 @@
----
-
-include_tasks: secure-worker-config.yml
-include_tasks: sdn-configmap.yml

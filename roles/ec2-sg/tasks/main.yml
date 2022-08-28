@@ -1,3 +1,0 @@
----
-- name: Build out the security groups
-  include_tasks: build.yml

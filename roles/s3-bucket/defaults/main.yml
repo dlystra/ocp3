@@ -1,4 +1,0 @@
----
-# DEFAULTS
-ec2_instance_destroy: "{{ marked_for_decommission }}"
-s3_bucket_name: "test-s3-bucket"

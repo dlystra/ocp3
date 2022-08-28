@@ -1,6 +1,0 @@
----
-- name: Destroy the s3 bucket
-  aws_s3:
-    bucket: "{{ s3_bucket_name }}"
-    region: "{{ region }}"
-    mode: delete

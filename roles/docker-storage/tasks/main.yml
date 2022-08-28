@@ -1,4 +1,0 @@
----
-# tasks file for docker-storage
-- name: docker_storage | Create docker storage
-  include_tasks: create-docker-storage.yml

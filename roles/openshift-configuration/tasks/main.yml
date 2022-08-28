@@ -1,9 +1,0 @@
----
-
-- name: Set default admin to service account
-  shell: oc adm policy add-cluster-role-to-user cluster-admin levelup-admin
-  become: yes
-
-- name: Create dev service account
-  shell: oc adm policy add-cluster-role-to-user cluster-admin levelup-pipeline
-  become: yes

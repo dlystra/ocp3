@@ -1,6 +1,0 @@
----
-- name: 3.5 Ensure that the --root-ca-file argument is set as appropriate
-  yedit:
-    src: /etc/origin/master/master-config.yaml
-    key: kubernetesMasterConfig.controllerArguments.root-ca-file
-    state: absent

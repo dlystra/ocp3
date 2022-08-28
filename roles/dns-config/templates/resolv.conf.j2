@@ -1,4 +1,0 @@
-{#  Write a resolv.conf file with the correct DNS hosts #}
-{%- for ip in dns_config_server_ips -%}
-nameserver {{ ip }}
-{% endfor %}

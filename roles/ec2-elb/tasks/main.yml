@@ -1,7 +1,0 @@
----
-- name: create-elb | Create load balancer
-  import_tasks: create-elb.yml
-  # when: elb_destroy == false
-
-# - name: destroy-elb | Destroy load balancer
-#   import_tasks: elb_destroy == true

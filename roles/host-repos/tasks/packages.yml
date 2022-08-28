@@ -1,5 +1,0 @@
----
-- name: Install Packages
-  yum:
-    name: httpd,mod_ssl,openssh,@webserver
-    state: latest
