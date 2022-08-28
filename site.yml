@@ -1,6 +1,0 @@
----
-- import_playbook: aws-provision.yml
-- import_playbook: elb-register.yml
-- import_playbook: host-repos.yml
-- import_playbook: registry.yml
-#- import_playbook: ocp.yml
